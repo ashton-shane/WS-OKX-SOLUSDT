@@ -53,6 +53,18 @@ async def main():
     print(queue_a)
     print(queue_b)
     
+    # create hash table to tabulate scores then iterate
+    scores = {"A" : 0, "B" : 0}
+    for i in range(queue_a.qsize):
+        if queue_a[i] < queue_b[i]:
+            scores["A"] += 1
+        elif queue_a[i] < queue_b[i]:
+            scores["B"] += 1
+
+    # determine winner
+    winner = max(scores["A"], scores["B"])
+    diff = abs(scores["A"] - scores["B"])
+    print("A")
 
 
 if __name__ == "__main__":
