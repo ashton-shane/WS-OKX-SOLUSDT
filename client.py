@@ -2,9 +2,9 @@ import asyncio
 from websockets import connect
 import json
 import time
+from helpers import get_conn_period
 
-
-async def get_trades(queue, x):
+async def get_trades(queue, conn, secs):
     # Initialise the required params for the API
     req_params = {
         "op": "subscribe",
@@ -26,28 +26,30 @@ async def get_trades(queue, x):
 
         # Calculate period of x seconds for loop to run
         start = time.perf_counter()
-        end = start + 10
+        end = start + secs
 
         # While loop to keep the data flowing until cancelled
-        print(f"Connection {x} receiving websocket responses from OKX...")
+        print(f"Connection {conn} receiving websocket responses from OKX...")
         while end > time.perf_counter():
             # Note that the first response is always a confirmation of what you sent, followed by the actual data
             json.loads(await websocket.recv())
             await queue.put(time.perf_counter())       # push timestamp into queue with each response
-        print(f"...connection {x} responses stopped.")
+        print(f"...connection {conn} responses stopped.")
 
         # Add an end signaller for iteration later
         await queue.put(None)
 
 async def main():
+    conn_period = get_conn_period()
+    
     print("\n================================================================================\n")
     # Create two queues
     queue_a = asyncio.Queue()
     queue_b = asyncio.Queue()
 
     # Create two concurrent websocket sessions to the same channel
-    conn_a = asyncio.create_task(get_trades(queue_a, "A"))
-    conn_b = asyncio.create_task(get_trades(queue_b, "B"))
+    conn_a = asyncio.create_task(get_trades(queue_a, "A", conn_period))
+    conn_b = asyncio.create_task(get_trades(queue_b, "B", conn_period))
     
     # Need to eventually await
     await conn_a
