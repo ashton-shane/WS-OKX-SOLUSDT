@@ -1,10 +1,10 @@
-from websockets.client import connect
 import asyncio
-import websockets
+from websockets import connect
 import json
 import time
 
-async def get_trades():
+
+async def get_trades(queue, x):
     # Initialise the required params for the API
     req_params = {
         "op": "subscribe",
@@ -22,21 +22,38 @@ async def get_trades():
     # Establish first connection with websocket
     async with connect(uri) as websocket:
         # Send params to server
-        await websocket.send(json.dumps(req_params, indent=4))
+        await websocket.send(json.dumps(req_params))
 
         # Calculate period of x seconds for loop to run
-        now = time.perf_counter()
-        end = now + 20
+        start = time.perf_counter()
+        end = start + 20
 
         # While loop to keep the data flowing until cancelled
+        print("Receiving websocket requests...")
         while end > time.perf_counter():
             # Note that the first response is always a confirmation of what you sent, followed by the actual data
-            pong_waiter = await websocket.ping()
-            recv_params = json.loads(await websocket.recv())
-            print(recv_params)
-            conn_a_latency = await pong_waiter
-            print(f"connection A's latency is {conn_a_latency}")
-            
-        print("End of loop")
+            json.loads(await websocket.recv())
+            return_timestamp = time.perf_counter()  # get timestmap at which response is received
+            await queue.put(return_timestamp)       # push timestamp into queue
+            print(f"Connection {x} returned at {return_timestamp}")
+        print("...requests stopped.")
+
+async def main():
+    # Create two queues
+    queue_a = asyncio.Queue()
+    queue_b = asyncio.Queue()
+
+    # Create two concurrent websocket sessions to the same channel
+    conn_a = asyncio.create_task(get_trades(queue_a, "A"))
+    conn_b = asyncio.create_task(get_trades(queue_b, "B"))
+
+    # Need to eventually await
+    await conn_a
+    await conn_b
+    print(queue_a)
+    print(queue_b)
+    
+
+
 if __name__ == "__main__":
-    asyncio.run(get_trades())
+    asyncio.run(main())
