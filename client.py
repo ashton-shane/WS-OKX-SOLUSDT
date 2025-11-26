@@ -64,7 +64,7 @@ async def main():
     # determine winner
     winner = max(scores["A"], scores["B"])
     diff = abs(scores["A"] - scores["B"])
-    print("A")
+    print(f"Connection {winner} was faster {diff} times!")
 
 
 if __name__ == "__main__":
