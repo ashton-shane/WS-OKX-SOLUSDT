@@ -5,29 +5,27 @@ async def main():
     conn_period = get_conn_period()
     print("\n================================================================================\n")
 
-    # Create two queues
-    queue_a = asyncio.Queue()
-    queue_b = asyncio.Queue()
+    # Create an async queue to push timestamps
+    queue = asyncio.Queue()
 
     # Create two concurrent websocket sessions to the same channel
-    conn_a = asyncio.create_task(get_trades(queue_a, "A", conn_period))
-    conn_b = asyncio.create_task(get_trades(queue_b, "B", conn_period))
+    n = input("How many connections do you wish to start: ")
+    tasks = []
+    for i in range(n):
+        task = asyncio.create_task(get_trades(queue, f"{i}", conn_period))
+        tasks.append(task)
     
     # Need to eventually await
-    await conn_a
-    await conn_b
+    await asyncio.gather(*tasks) # * it is the splat operator that splits into separate tasks.=
 
     # get total connections to confirm
-    print("\n------------------------ RESULTS -------------------------\n")
-    print(f"Connection A received {queue_a.qsize()-2} responses")   # take away the first and last response (confirmation + signaller)
-    print(f"Connection B received {queue_b.qsize()-2} responses")   
+    print("\n------------------------ RESULTS -------------------------\n") # take away the first and last response (confirmation + signaller)
 
     # Remove from queues the first timestamp as that is the confirmation response
-    await queue_a.get()
-    await queue_b.get()
+    await queue.get()
 
     # Tabulate scores and get winner
-    await get_winner(queue_a, queue_b)
+    await get_winner(queue)
 
 
 if __name__ == "__main__":
