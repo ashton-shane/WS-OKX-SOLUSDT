@@ -36,8 +36,7 @@ async def get_trades(queue, conn, secs):
             recv_data = json.loads(await websocket.recv())
             now = time.time() * 1000       # in miliseconds
             latency = now - (float(recv_data["data"][0]["ts"]))
-            print(f"Latency is {recv_data["data"][0]["ts"]}")
-            print(latency)
+            print(f"Latency is {latency}")
             await queue.put(latency)       # push timestamp into queue with each response
         print(f"...connection {conn} responses stopped.")
 
