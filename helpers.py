@@ -53,6 +53,22 @@ def get_conn_period():
             print("ERROR: Please only input an integer value")
 
 
+def create_task_list(queue, conn_period):
+    while True:
+        try:
+            n = int(input("How many connections do you wish to start: "))
+            if isinstance(n, int):
+                break
+        except ValueError:
+            print("ERROR: Please only input an integer value")
+        
+        tasks = []
+        for i in range(n):
+            task = asyncio.create_task(get_trades(queue, f"{i}", conn_period))
+            tasks.append(task)
+
+    return tasks
+
 async def get_winner(queue_a, queue_b):
     # create hash table to tabulate scores then iterate
     scores = {"A" : 0, 

@@ -1,5 +1,5 @@
 import asyncio
-from helpers import get_conn_period, get_winner, get_trades
+from helpers import get_conn_period, get_winner, get_trades, create_task_list
 
 async def main():
     conn_period = get_conn_period()
@@ -8,14 +8,10 @@ async def main():
     # Create an async queue to push timestamps
     queue = asyncio.Queue()
 
-    # Create two concurrent websocket sessions to the same channel
-    n = input("How many connections do you wish to start: ")
-    tasks = []
-    for i in range(n):
-        task = asyncio.create_task(get_trades(queue, f"{i}", conn_period))
-        tasks.append(task)
+    # Dynamically create concurrent websocket sessions to the same channel, push to a list
+    tasks = create_task_list(queue, conn_period)
     
-    # Need to eventually await
+    # Need to eventually await the list of tasks
     await asyncio.gather(*tasks) # * it is the splat operator that splits into separate tasks.=
 
     # get total connections to confirm
