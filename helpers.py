@@ -22,6 +22,8 @@ async def get_trades(queue, conn, secs):
     async with connect(uri) as websocket:
         # Send params to server
         await websocket.send(json.dumps(req_params)) 
+        # Don't process the first websocket response
+        await websocket.recv()
 
         # Calculate period of x seconds for loop to run
         start = time.perf_counter()
@@ -31,8 +33,12 @@ async def get_trades(queue, conn, secs):
         print(f"Connection {conn} receiving websocket responses from OKX...")
         while end > time.perf_counter():
             # Note that the first response is always a confirmation of what you sent, followed by the actual data
-            json.loads(await websocket.recv())
-            await queue.put(time.perf_counter())       # push timestamp into queue with each response
+            recv_data = json.loads(await websocket.recv())
+            now = time.time() * 1000       # in miliseconds
+            latency = now - (float(recv_data["data"][0]["ts"]))
+            print(f"Latency is {recv_data["data"][0]["ts"]}")
+            print(latency)
+            await queue.put(latency)       # push timestamp into queue with each response
         print(f"...connection {conn} responses stopped.")
 
         # Add an end signaller for iteration later
