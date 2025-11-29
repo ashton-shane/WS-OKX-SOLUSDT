@@ -3,6 +3,8 @@ import time
 from websockets import connect
 import asyncio
 import pprint
+import csv
+import re
 
 def get_conn_period():
     while True:
@@ -58,6 +60,7 @@ async def get_trades(queue, conn, secs):
             await queue.put(obj)       # push timestamp into queue with each response
         print(f"...connection {conn} responses stopped.")
 
+
 def get_num_conn():
     while True:
         try:
@@ -66,7 +69,15 @@ def get_num_conn():
                 return n
         except ValueError:
             print("ERROR: Please only input an integer value")
-        
+
+
+def get_file_name():
+    while True:
+        file_name = input("Please input your file name: ").strip().replace(" ", "")
+        if re.fullmatch(r"[A-Za-z0-9_]+", file_name):
+            return file_name
+
+
 def create_task_list(queue, conn_period, n):
     task_list = []
 
@@ -103,19 +114,53 @@ async def process_queue(queue):
         trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
     return trades_by_id
 
-def tabulate_scores(d, n):
+def tabulate_scores(trades_dict, n, file_name):
     # create hash table to save scores
     scores = {}
     for i in range(n):
         scores[f"{i+1}"] = 0
 
     # tabulate
-    for i, trades in enumerate(d.items()):
+    winners = [] # for CSV purposes
+    for i, trades in enumerate(trades_dict.items()):
         # "trades" is a tuple of (id : latency)
         winner = min(trades[1], key=trades[1].get)
+        winners.append(winner)
         scores[winner] += 1
         print(f"The winner for trade {trades[0]} is connection {winner}")
+    print(winners)
+    # create CSV at this point
+    write_to_csv(n, trades_dict, winners, file_name)
+
+    # return scores
     return scores
+
+
+def write_to_csv(n, trades_dict, winners, file_name):
+    with open(f"{file_name}.csv", 'w', newline='') as csvfile:
+        # ['tradeId', 'conn_1', 'conn_2', 'winner']
+        fieldnames = ['no.', 'tradeId']
+        for i in range(n):
+            fieldnames.append(f"conn_{i+1}")
+        fieldnames.append("winner")
+        
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    
+        # write rows
+        for i, (trade_id, trades) in enumerate(trades_dict.items()):
+            # initialise row variable to store row KV pairs starting w tradeId
+            row = { 
+                'no.' : i+1,
+                'tradeId' : trade_id }
+            # for each ID, iterate through the connections
+            for conn, latency in trades.items():
+                row[f"conn_{conn}"] = latency
+            # grab winner from winners array - indexes should follow the same as the trades_dict
+            row["winner"] = winners[i]
+            writer.writerow(row)
+        
+    print(f"{file_name}.csv has been successfully created!")
 
 def get_winner(scores):
     overall_winner = max(scores, key=scores.get)
