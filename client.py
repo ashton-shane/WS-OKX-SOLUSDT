@@ -1,11 +1,13 @@
 import asyncio
-from helpers import get_conn_period, create_task_list, get_num_conn, process_queue, tabulate_scores, get_winner
+from helpers import get_conn_period, create_task_list, get_num_conn, process_queue, tabulate_scores, get_winner, get_file_name
 
 async def main():
     # Get period of connection
     conn_period = get_conn_period()
     # Get number of parallel connections
     n = get_num_conn()
+    # get CSV file name
+    file_name = get_file_name()
 
     print("\n================================================================================\n")
 
@@ -25,10 +27,9 @@ async def main():
     # Note that the first response is always a confirmation of what you sent, followed by the actual data
     # Tabulate scores and get winner
     trades_dict = await process_queue(queue)
-    scores_dict = tabulate_scores(trades_dict, n)
+    scores_dict = tabulate_scores(trades_dict, n, file_name)
     get_winner(scores_dict)
     print("\n================================================================================\n")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
