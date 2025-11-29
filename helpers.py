@@ -128,7 +128,7 @@ def tabulate_scores(trades_dict, n, file_name):
         winners.append(winner)
         scores[winner] += 1
         print(f"The winner for trade {trades[0]} is connection {winner}")
-    
+    print(winners)
     # create CSV at this point
     write_to_csv(n, trades_dict, winners, file_name)
 
@@ -139,7 +139,7 @@ def tabulate_scores(trades_dict, n, file_name):
 def write_to_csv(n, trades_dict, winners, file_name):
     with open(f"{file_name}.csv", 'w', newline='') as csvfile:
         # ['tradeId', 'conn_1', 'conn_2', 'winner']
-        fieldnames = ['tradeId']
+        fieldnames = ['no.', 'tradeId']
         for i in range(n):
             fieldnames.append(f"conn_{i+1}")
         fieldnames.append("winner")
@@ -148,13 +148,15 @@ def write_to_csv(n, trades_dict, winners, file_name):
         writer.writeheader()
     
         # write rows
-        for i, trades in enumerate(trades_dict.items()):
+        for i, (trade_id, trades) in enumerate(trades_dict.items()):
             # initialise row variable to store row KV pairs starting w tradeId
-            row = { 'tradeId' : trades[0]}
+            row = { 
+                'no.' : i+1,
+                'tradeId' : trade_id }
             # for each ID, iterate through the connections
-            for i, conn in enumerate(trades[1].items()):
-                row[f"conn_{conn[0]}"] = conn[1]
-            # grab winner from winners array - indexes should follow the same as the trades_dict    
+            for conn, latency in trades.items():
+                row[f"conn_{conn}"] = latency
+            # grab winner from winners array - indexes should follow the same as the trades_dict
             row["winner"] = winners[i]
             writer.writerow(row)
         
