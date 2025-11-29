@@ -2,6 +2,17 @@ import json
 import time
 from websockets import connect
 import asyncio
+import pprint
+
+def get_conn_period():
+    while True:
+        try:
+            secs = int(input("Period (in seconds) to run websocket: ").strip())
+            if isinstance(secs, int):
+                return secs
+        except ValueError:
+            print("ERROR: Please only input an integer value")
+
 
 async def get_trades(queue, conn, secs):
     # Initialise the required params for the API
@@ -22,6 +33,7 @@ async def get_trades(queue, conn, secs):
     async with connect(uri) as websocket:
         # Send params to server
         await websocket.send(json.dumps(req_params)) 
+        
         # Don't process the first websocket response
         await websocket.recv()
 
@@ -32,59 +44,79 @@ async def get_trades(queue, conn, secs):
         # While loop to keep the data flowing until cancelled
         print(f"Connection {conn} receiving websocket responses from OKX...")
         while end > time.perf_counter():
-            # Note that the first response is always a confirmation of what you sent, followed by the actual data
+            
             recv_data = json.loads(await websocket.recv())
-            now = time.time() * 1000       # in miliseconds
+            now = time.time() * 1000                                    # in miliseconds
             latency = now - (float(recv_data["data"][0]["ts"]))
-            print(f"Latency is {latency}")
-            await queue.put(latency)       # push timestamp into queue with each response
+            tradeId = recv_data["data"][0]["tradeId"]
+            obj = {
+                "connection": conn,
+                "tradeId": tradeId,
+                "latency": latency
+            }
+            print(obj)
+            await queue.put(obj)       # push timestamp into queue with each response
         print(f"...connection {conn} responses stopped.")
 
-        # Add an end signaller for iteration later
-        await queue.put(None)
-
-def get_conn_period():
+def get_num_conn():
     while True:
         try:
-            secs = int(input("Period (in seconds) to run websocket: ").strip())
-            if isinstance(secs, int):
-                return secs
+            n = int(input("How many connections do you wish to start: "))
+            if isinstance(n, int):
+                return n
         except ValueError:
             print("ERROR: Please only input an integer value")
+        
+def create_task_list(queue, conn_period, n):
+    task_list = []
+
+    for i in range(n):
+        task = asyncio.create_task(get_trades(queue, f"{i+1}", conn_period))
+        task_list.append(task)
+    return task_list
 
 
-async def get_winner(queue_a, queue_b):
-    # create hash table to tabulate scores then iterate
-    scores = {"A" : 0, 
-              "B" : 0, 
-              "DRAW": 0}
-    
+async def process_queue(queue): 
+    # Create a dict of dicts organised by tradeIDs, 
+    # i.e. {'394490182' : 
+    #               {
+    #                   '2' : 54.9580078125,
+    #                   '1' : 55.9580078125
+    #               }
+    #       }
+
+    trades_by_id = {}
     while True:
-        # Get each values - queues need to be awaited even when getting because they are channels
-        a, b = await asyncio.gather(queue_a.get(), queue_b.get())
-
-        # Check for end signaller, and add end scores if necessary
-        if not a and not b:
+        # get next transaction
+        curr = await queue.get()
+        
+        # Break once we hit the None signaller
+        if not curr:
             break
-        elif b and not a:
-            scores["B"] += 1    # means be managed to squeeze in one more connection before it closed
-        elif a and not b:
-            scores["A"] += 1
+        
+        # populate dict
+        curr_trade_id = curr["tradeId"]
+        if not curr_trade_id in trades_by_id:
+            trades_by_id[curr_trade_id] = { curr["connection"] : curr["latency"] }
+        
+        # Map latencies dict in dicts
+        trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
+    return trades_by_id
 
-        # populate hash table with wins
-        if a < b:
-            scores["A"] += 1
-        elif b < a:
-            scores["B"] += 1
-        else:
-            scores["DRAW"] += 1
+def tabulate_scores(d, n):
+    # create hash table to save scores
+    scores = {}
+    for i in range(n):
+        scores[f"{i+1}"] = 0
 
-    # determine winner
-    most = max(scores["A"], scores["B"])
-    winner = next(k for k,v in scores.items() if scores[k] == most)
-    diff = abs(scores["A"] - scores["B"])
+    # tabulate
+    for i, trades in enumerate(d.items()):
+        # "trades" is a tuple of (id : latency)
+        winner = min(trades[1], key=trades[1].get)
+        scores[winner] += 1
+        print(f"The winner for trade {trades[0]} is connection {winner}")
+    pprint.pprint(scores)
+    return scores
 
-    print(f"There were {scores['DRAW']} draws")
-    print(f"Connection A scored {scores["A"]} times while connection B scored {scores["B"]} times")
-    print(f"Connection {winner} is the winner with {most} wins and was faster {diff} times!")
-    print("\n================================================================================\n")
+def get_winner():
+    return

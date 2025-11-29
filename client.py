@@ -1,34 +1,36 @@
 import asyncio
-from helpers import get_conn_period, get_winner, get_trades
+from helpers import get_conn_period, create_task_list, get_num_conn, process_queue, tabulate_scores
 
 async def main():
-    conn_period = get_conn_period()
     print("\n================================================================================\n")
-
-    # Create two queues
-    queue_a = asyncio.Queue()
-    queue_b = asyncio.Queue()
-
-    # Create two concurrent websocket sessions to the same channel
-    conn_a = asyncio.create_task(get_trades(queue_a, "A", conn_period))
-    conn_b = asyncio.create_task(get_trades(queue_b, "B", conn_period))
     
-    # Need to eventually await
-    await conn_a
-    await conn_b
+    # Get period of connection
+    conn_period = get_conn_period()
+    # Get number of parallel connections
+    n = get_num_conn()
 
+    # Create an async queue to push timestamps
+    queue = asyncio.Queue()
+
+    # Dynamically create concurrent websocket sessions to the same channel, push to a list
+    tasks = create_task_list(queue, conn_period, n)
+    
+    # Need to eventually await the list of tasks
+    await asyncio.gather(*tasks) # * it is the splat operator that splits into separate tasks.
+    
+    # Add an end signaller for iteration later
+    await queue.put(None)
+    
     # get total connections to confirm
-    print("\n------------------------ RESULTS -------------------------\n")
-    print(f"Connection A received {queue_a.qsize()-2} responses")   # take away the first and last response (confirmation + signaller)
-    print(f"Connection B received {queue_b.qsize()-2} responses")   
+    print("\n------------------------ RESULTS -------------------------\n") # take away the first and last response (confirmation + signaller)
 
+    # Note that the first response is always a confirmation of what you sent, followed by the actual data
     # Remove from queues the first timestamp as that is the confirmation response
-    await queue_a.get()
-    await queue_b.get()
-
+    # await queue.get()
+    
     # Tabulate scores and get winner
-    await get_winner(queue_a, queue_b)
-
+    trades_dict = await process_queue(queue)
+    scores_dict = tabulate_scores(trades_dict, n)
 
 if __name__ == "__main__":
     asyncio.run(main())
