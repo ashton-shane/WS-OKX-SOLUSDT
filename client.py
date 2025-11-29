@@ -1,5 +1,5 @@
 import asyncio
-from helpers import get_conn_period, get_winner, get_trades, create_task_list, get_num_conn, process_queue
+from helpers import get_conn_period, create_task_list, get_num_conn, process_queue
 
 async def main():
     print("\n================================================================================\n")
@@ -26,7 +26,7 @@ async def main():
 
     # Note that the first response is always a confirmation of what you sent, followed by the actual data
     # Remove from queues the first timestamp as that is the confirmation response
-    await queue.get()
+    # await queue.get()
     
     # Tabulate scores and get winner
     await process_queue(queue, n)

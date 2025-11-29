@@ -2,7 +2,7 @@ import json
 import time
 from websockets import connect
 import asyncio
-from collections import deque
+import pprint
 
 def get_conn_period():
     while True:
@@ -77,55 +77,43 @@ def create_task_list(queue, conn_period, n):
 
 
 async def process_queue(queue, n):
-    # create a non-async tradeID queue, while the current trade ID is there, add to a hash table. 
-    # the moment trade ID changes, popleft, and add new tradeID to begin cycle.
-    arr = []
-    curr_trade_id = deque(arr)
-
     # create empty hash table to save the latest three connections + another hash table to save scores
     latest_latencies = {}
     scores = {}
     for i in range(n):
-        latest_latencies[f"{i}"] = None
-        scores[f"conn_{i}"] = 0
+        latest_latencies[f"{i+1}"] = None
+        scores[f"conn_{i+1}"] = 0
     
-    # take the first score from the queue - this tradeId will set the beginning
-    first = await queue.get()
-    curr_trade_id.append(first["tradeId"])
-    latest_latencies[first["connection"]] = first["latency"]
+    # Create a dict of (array of dicts) organised by tradeIDs, 
+    # i.e. {'394490182' : 
+    #           [
+    #               {'connection': '2', 'latency': 54.9580078125},
+    #               {'connection': '1', 'latency': 55.9580078125}
+    #           ]
+    #       }
 
+    trades_by_id = {}
     while True:
         # get next transaction
         curr = await queue.get()
-
+        
         # Break once we hit the None signaller
         if not curr:
             break
-
-        # check if we hit the next trade_id, i.e. start of next cycle
-        if curr["tradeId"] != curr_trade_id[0]:
-            # tabulate scores
-            tabulate_scores(scores, latest_latencies)
-            # remove prev tradeID and add one to the right
-            curr_trade_id.popleft()
-            curr_trade_id.append(curr["tradeId"])
         
-        # Add to latest latencies to compare
-        latest_latencies[curr["connection"]] = curr["latency"]
+        # populate dict
+        curr_trade_id = curr["tradeId"]
+        if not curr_trade_id in trades_by_id:
+            trades_by_id[curr_trade_id] = { curr["connection"] : curr["latency"] }
         
+        # Map latencies dict in dicts
+        trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
+    
+    pprint.pprint(trades_by_id)
 
-def tabulate_scores(scores, latest_latencies):
-    # get the values of latest_latencies to compare
-    latencies = list(latest_latencies.values())
-    # find min value
-    fastest = min(*latencies)
-    # use reverse dict comprehension to get key
-    winner = [k for k, v in latest_latencies.items() if latest_latencies[k] == fastest]
-    # change winner score in scores hashtable
-    scores[winner] += 1
+def tabulate_scores(dict):
+    return
+
 
 def get_winner():
-    print(f"There were draws")
-    print(f"Connection A scored times while connection B scored times")
-    print(f"Connection is the winner with  wins and was faster times!")
-    print("\n================================================================================\n")
+    return
