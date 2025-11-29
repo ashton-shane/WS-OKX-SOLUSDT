@@ -80,8 +80,8 @@ async def process_queue(queue):
     # Create a dict of dicts organised by tradeIDs, 
     # i.e. {'394490182' : 
     #               {
-    #                   '2' : 54.9580078125,
-    #                   '1' : 55.9580078125
+    #                   '1' : 54.9580078125,
+    #                   '2' : 55.9580078125
     #               }
     #       }
 
@@ -115,8 +115,8 @@ def tabulate_scores(d, n):
         winner = min(trades[1], key=trades[1].get)
         scores[winner] += 1
         print(f"The winner for trade {trades[0]} is connection {winner}")
-    pprint.pprint(scores)
     return scores
 
-def get_winner():
-    return
+def get_winner(scores):
+    overall_winner = max(scores, key=scores.get)
+    print(f"\nThe overall winner is CONNECTION {overall_winner} with {scores[overall_winner]} wins!\n")
