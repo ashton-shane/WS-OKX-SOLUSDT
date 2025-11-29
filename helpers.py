@@ -114,6 +114,7 @@ async def process_queue(queue):
         trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
     return trades_by_id
 
+
 def tabulate_scores(trades_dict, n, file_name):
     # create hash table to save scores
     scores = {}
@@ -128,7 +129,7 @@ def tabulate_scores(trades_dict, n, file_name):
         winners.append(winner)
         scores[winner] += 1
         print(f"The winner for trade {trades[0]} is connection {winner}")
-    print(winners)
+   
     # create CSV at this point
     write_to_csv(n, trades_dict, winners, file_name)
 
@@ -149,13 +150,15 @@ def write_to_csv(n, trades_dict, winners, file_name):
     
         # write rows
         for i, (trade_id, trades) in enumerate(trades_dict.items()):
-            # initialise row variable to store row KV pairs starting w tradeId
+            # initialise row variable to store row KV pairs starting w row no. and tradeId
             row = { 
                 'no.' : i+1,
                 'tradeId' : trade_id }
-            # for each ID, iterate through the connections
+            
+            # for each ID, iterate through the trades to get the conn : latency pairs
             for conn, latency in trades.items():
                 row[f"conn_{conn}"] = latency
+
             # grab winner from winners array - indexes should follow the same as the trades_dict
             row["winner"] = winners[i]
             writer.writerow(row)
