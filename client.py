@@ -23,9 +23,6 @@ async def main():
     print("\n------------------------ RESULTS -------------------------\n") # take away the first and last response (confirmation + signaller)
 
     # Note that the first response is always a confirmation of what you sent, followed by the actual data
-    # Remove from queues the first timestamp as that is the confirmation response
-    # await queue.get()
-    
     # Tabulate scores and get winner
     trades_dict = await process_queue(queue)
     scores_dict = tabulate_scores(trades_dict, n)
