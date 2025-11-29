@@ -1,5 +1,5 @@
 import asyncio
-from helpers import get_conn_period, create_task_list, get_num_conn, process_queue
+from helpers import get_conn_period, create_task_list, get_num_conn, process_queue, tabulate_scores
 
 async def main():
     print("\n================================================================================\n")
@@ -29,8 +29,8 @@ async def main():
     # await queue.get()
     
     # Tabulate scores and get winner
-    await process_queue(queue, n)
-
+    trades_dict = await process_queue(queue)
+    scores_dict = tabulate_scores(trades_dict, n)
 
 if __name__ == "__main__":
     asyncio.run(main())

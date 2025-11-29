@@ -76,12 +76,7 @@ def create_task_list(queue, conn_period, n):
     return task_list
 
 
-async def process_queue(queue, n):
-    # create hash table to save scores
-    scores = {}
-    for i in range(n):
-        scores[f"conn_{i+1}"] = 0
-    
+async def process_queue(queue): 
     # Create a dict of dicts organised by tradeIDs, 
     # i.e. {'394490182' : 
     #               {
@@ -106,11 +101,22 @@ async def process_queue(queue, n):
         
         # Map latencies dict in dicts
         trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
-    pprint.pprint(trades_by_id)
+    return trades_by_id
 
-def tabulate_scores(dict):
-    return
+def tabulate_scores(d, n):
+    # create hash table to save scores
+    scores = {}
+    for i in range(n):
+        scores[f"{i+1}"] = 0
 
+    # tabulate
+    for i, trades in enumerate(d.items()):
+        # "trades" is a tuple of (id : latency)
+        winner = min(trades[1], key=trades[1].get)
+        scores[winner] += 1
+        print(f"The winner for trade {trades[0]} is connection {winner}")
+    pprint.pprint(scores)
+    return scores
 
 def get_winner():
     return
