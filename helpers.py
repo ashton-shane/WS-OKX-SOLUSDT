@@ -84,12 +84,12 @@ async def process_queue(queue, n):
         latest_latencies[f"{i+1}"] = None
         scores[f"conn_{i+1}"] = 0
     
-    # Create a dict of (array of dicts) organised by tradeIDs, 
+    # Create a dict of dicts organised by tradeIDs, 
     # i.e. {'394490182' : 
-    #           [
-    #               {'connection': '2', 'latency': 54.9580078125},
-    #               {'connection': '1', 'latency': 55.9580078125}
-    #           ]
+    #               {
+    #                   '2' : 54.9580078125,
+    #                   '1' : 55.9580078125
+    #               }
     #       }
 
     trades_by_id = {}
@@ -108,7 +108,6 @@ async def process_queue(queue, n):
         
         # Map latencies dict in dicts
         trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
-    
     pprint.pprint(trades_by_id)
 
 def tabulate_scores(dict):
