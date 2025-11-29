@@ -76,19 +76,56 @@ def create_task_list(queue, conn_period, n):
     return task_list
 
 
-async def get_winner(queue):
-    # create a trade ID queue, while the current trade ID is there, add to a hash table. 
+async def process_queue(queue, n):
+    # create a non-async tradeID queue, while the current trade ID is there, add to a hash table. 
     # the moment trade ID changes, popleft, and add new tradeID to begin cycle.
-    # create hash table to tabulate scores then iterate
     arr = []
     curr_trade_id = deque(arr)
 
-
+    # create empty hash table to save the latest three connections + another hash table to save scores
+    latest_latencies = {}
     scores = {}
+    for i in range(n):
+        latest_latencies[f"{i}"] = None
+        scores[f"conn_{i}"] = 0
+    
+    # take the first score from the queue - this tradeId will set the beginning
+    first = await queue.get()
+    curr_trade_id.append(first["tradeId"])
+    latest_latencies[first["connection"]] = first["latency"]
 
-    return
+    while True:
+        # get next transaction
+        curr = await queue.get()
 
+        # Break once we hit the None signaller
+        if not curr:
+            break
+
+        # check if we hit the next trade_id, i.e. start of next cycle
+        if curr["tradeId"] != curr_trade_id[0]:
+            # tabulate scores
+            tabulate_scores(scores, latest_latencies)
+            # remove prev tradeID and add one to the right
+            curr_trade_id.popleft()
+            curr_trade_id.append(curr["tradeId"])
+        
+        # Add to latest latencies to compare
+        latest_latencies[curr["connection"]] = curr["latency"]
+        
+
+def tabulate_scores(scores, latest_latencies):
+    # get the values of latest_latencies to compare
+    latencies = list(latest_latencies.values())
+    # find min value
+    fastest = min(*latencies)
+    # use reverse dict comprehension to get key
+    winner = [k for k, v in latest_latencies.items() if latest_latencies[k] == fastest]
+    # change winner score in scores hashtable
+    scores[winner] += 1
+
+def get_winner():
     print(f"There were draws")
-    print(f"Connection A scored times while connection B scored {scores["B"]} times")
-    print(f"Connection {winner} is the winner with {most} wins and was faster {diff} times!")
+    print(f"Connection A scored times while connection B scored times")
+    print(f"Connection is the winner with  wins and was faster times!")
     print("\n================================================================================\n")
