@@ -77,11 +77,9 @@ def create_task_list(queue, conn_period, n):
 
 
 async def process_queue(queue, n):
-    # create empty hash table to save the latest three connections + another hash table to save scores
-    latest_latencies = {}
+    # create hash table to save scores
     scores = {}
     for i in range(n):
-        latest_latencies[f"{i+1}"] = None
         scores[f"conn_{i+1}"] = 0
     
     # Create a dict of dicts organised by tradeIDs, 
