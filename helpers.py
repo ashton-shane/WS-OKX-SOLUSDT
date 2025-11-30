@@ -109,10 +109,10 @@ async def process_queue(queue):
         # populate dict
         curr_trade_id = curr["tradeId"]
         if not curr_trade_id in trades_by_id:
-            trades_by_id[curr_trade_id] = { curr["connection"] : curr["latency"] }
+            trades_by_id[curr_trade_id] = { curr["connection"] : abs(curr["latency"]) }
         
         # Map latencies dict in dicts
-        trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
+        trades_by_id[curr_trade_id][curr["connection"]] = abs(curr["latency"])
     return trades_by_id
 
 
