@@ -1,10 +1,11 @@
-import json
-import time
-from websockets import connect
 import asyncio
-import pprint
 import csv
+import json
+import pprint
 import re
+import time
+from tabulate import tabulate
+from websockets import connect
 
 def get_conn_period():
     while True:
@@ -132,6 +133,24 @@ def tabulate_scores(trades_dict, n, file_name):
     return scores, winners
 
 
+def get_winner(scores):
+    overall_winner = max(scores, key=scores.get)
+
+    # use tabulate to print data into grid
+    headers = [" "]
+    table = [["WINS"]]
+    for conn, score in scores.items():
+        headers.append(f"Conn {conn}")
+        table[0].append(score)
+    headers.append("OVERALL WINNER")
+    table[0].append(f"CONNECTION {overall_winner}")
+    print("\n")
+    print(tabulate(table, headers, tablefmt="mixed_outline"))
+
+    print(f"\nThe overall winner is CONNECTION {overall_winner} with {scores[overall_winner]} wins!\n")
+    return overall_winner
+
+
 def write_to_csv(n, trades_dict, winners, file_name, scores, overall_winner):
     with open(f"{file_name}.csv", 'w', newline='') as csvfile:
         # ['tradeId', 'conn_1', 'conn_2', 'winner']
@@ -167,7 +186,3 @@ def write_to_csv(n, trades_dict, winners, file_name, scores, overall_winner):
 
     print(f"{file_name}.csv has been successfully created!")
 
-def get_winner(scores):
-    overall_winner = max(scores, key=scores.get)
-    print(f"\nThe overall winner is CONNECTION {overall_winner} with {scores[overall_winner]} wins!\n")
-    return overall_winner
