@@ -129,15 +129,10 @@ def tabulate_scores(trades_dict, n, file_name):
         winners.append(winner)
         scores[winner] += 1
         print(f"The winner for trade {trades[0]} is connection {winner}")
-   
-    # create CSV at this point
-    write_to_csv(n, trades_dict, winners, file_name)
-
-    # return scores
-    return scores
+    return scores, winners
 
 
-def write_to_csv(n, trades_dict, winners, file_name):
+def write_to_csv(n, trades_dict, winners, file_name, scores, overall_winner):
     with open(f"{file_name}.csv", 'w', newline='') as csvfile:
         # ['tradeId', 'conn_1', 'conn_2', 'winner']
         fieldnames = ['no.', 'tradeId']
@@ -163,8 +158,16 @@ def write_to_csv(n, trades_dict, winners, file_name):
             row["winner"] = winners[i]
             writer.writerow(row)
         
+        # write final line with final result
+        last_row = { 'no.' : 'WINS:', 'tradeId' : 'nil'}
+        for conn, score in scores.items():
+            last_row[f"conn_{conn}"] = f"{score} wins"
+        last_row["winner"] = f"OVERALL WINNER: {overall_winner}"
+        writer.writerow(last_row)
+
     print(f"{file_name}.csv has been successfully created!")
 
 def get_winner(scores):
     overall_winner = max(scores, key=scores.get)
     print(f"\nThe overall winner is CONNECTION {overall_winner} with {scores[overall_winner]} wins!\n")
+    return overall_winner

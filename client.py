@@ -1,5 +1,5 @@
 import asyncio
-from helpers import get_conn_period, create_task_list, get_num_conn, process_queue, tabulate_scores, get_winner, get_file_name
+from helpers import get_conn_period, create_task_list, get_num_conn, process_queue, tabulate_scores, get_winner, get_file_name,write_to_csv
 
 async def main():
     # Get period of connection
@@ -27,8 +27,12 @@ async def main():
     # Note that the first response is always a confirmation of what you sent, followed by the actual data
     # Tabulate scores and get winner
     trades_dict = await process_queue(queue)
-    scores_dict = tabulate_scores(trades_dict, n, file_name)
-    get_winner(scores_dict)
+    scores_dict, winners = tabulate_scores(trades_dict, n, file_name)
+    overall_winner = get_winner(scores_dict)
+
+    # Create CSV with all the info available
+    write_to_csv(n, trades_dict, winners, file_name, scores_dict, overall_winner)
+
     print("\n================================================================================\n")
 
 if __name__ == "__main__":
