@@ -41,23 +41,25 @@ async def get_trades(queue, conn, secs):
         await websocket.recv()
 
         # Calculate period of x seconds for loop to run
-        start = time.perf_counter()
-        end = start + secs
+        loop_start = time.perf_counter()
+        loop_end = loop_start + secs
 
         # While loop to keep the data flowing until cancelled
         print(f"Connection {conn} receiving websocket responses from OKX...")
-        while end > time.perf_counter():
-            
+        while loop_end > time.perf_counter():
+            recv_start_ts = time.time() * 1000                      # in ms
             recv_data = json.loads(await websocket.recv())
-            now = time.time() * 1000                                    # in miliseconds
-            latency = now - (float(recv_data["data"][0]["ts"]))
+            recv_end_ts = time.time() * 1000
+            arrival_time = (recv_start_ts + recv_end_ts) / 2  # Calculate the midpoint of the recv timestamp
+            latency = arrival_time - (float(recv_data["data"][0]["ts"]))
             tradeId = recv_data["data"][0]["tradeId"]
+
             obj = {
                 "connection": conn,
                 "tradeId": tradeId,
-                "latency": latency
+                "latency": abs(latency)
             }
-            print(obj)
+            print(f"Response: {obj}")
             await queue.put(obj)       # push timestamp into queue with each response
         print(f"...connection {conn} responses stopped.")
 
@@ -109,10 +111,10 @@ async def process_queue(queue):
         # populate dict
         curr_trade_id = curr["tradeId"]
         if not curr_trade_id in trades_by_id:
-            trades_by_id[curr_trade_id] = { curr["connection"] : abs(curr["latency"]) }
+            trades_by_id[curr_trade_id] = { curr["connection"] : curr["latency"] }
         
         # Map latencies dict in dicts
-        trades_by_id[curr_trade_id][curr["connection"]] = abs(curr["latency"])
+        trades_by_id[curr_trade_id][curr["connection"]] = curr["latency"]
     return trades_by_id
 
 
